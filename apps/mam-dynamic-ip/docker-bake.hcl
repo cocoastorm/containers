@@ -5,7 +5,7 @@ variable "APP" {
 }
 
 variable "VERSION" {
-  default = "0.0.1"
+  default = "0.0.2"
 }
 
 group "default" {

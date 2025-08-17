@@ -25,4 +25,4 @@ USER nobody:nogroup
 WORKDIR /app
 COPY --chown=65534:65534 --chmod=755 ./scripts/script.sh /app/script.sh
 
-ENTRYPOINT ["/usr/bin/cataonit", "--", "/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/catatonit", "--", "/entrypoint.sh"]
