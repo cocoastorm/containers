@@ -19,6 +19,10 @@ RUN \
   jq \
   supercronic
 
-COPY ./script.sh /app/script.sh
-COPY ./entrypoint.sh /entrypoint.sh
-CMD ["/entrypoint.sh"]
+COPY --chmod=755 ./entrypoint.sh /entrypoint.sh
+
+USER nobody:nogroup
+WORKDIR /app
+COPY --chown=65534:65534 --chmod=755 ./scripts/script.sh /app/script.sh
+
+ENTRYPOINT ["/usr/bin/cataonit", "--", "/entrypoint.sh"]
