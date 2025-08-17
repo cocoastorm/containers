@@ -14,6 +14,7 @@ RUN \
   apk add --no-cache \
   bash \
   ca-certificates \
+  catatonit \
   curl \
   gum \
   jq \
