@@ -69,6 +69,11 @@ get_mam_session_cookie() {
     return
   fi
 
+  if [[ -f "${MAM_SESSION_DIR}" && -s "${MAM_SESSION_DIR}" ]]; then
+      log --level info "Session cookie file already exists, skipping session creation"
+      return
+  fi
+
   output=$(query_mam "${MAM_DYNAMIC_IP_URL}" "${session_id}")
   msg=$(echo "${output}" | jq -r '.msg')
 
@@ -109,9 +114,15 @@ should_update_ip() {
         return 0
       fi
     fi
+
+    log --level info "different IP detected" \
+      "external_ip" "${current_ip}" \
+      "last_ip" "${last_ip}"
+
+    return 0
   fi
 
-  log --level info "different IP detected" \
+  log --level info "same IP detected" \
     "external_ip" "${current_ip}" \
     "last_ip" "${last_ip}"
 
@@ -137,6 +148,7 @@ main() {
     "MAM_session_file" "${MAM_SESSION_DIR}" "MAM_session_id" "${MAM_SESSION_ID}"
 
   # try to hit MAM at least once
+  # returns if session_id is not passed or cookie file is already present
   get_mam_session_cookie "${MAM_SESSION_ID}"
 
   # continuously update MAM with IP if applicable
@@ -144,7 +156,7 @@ main() {
   if should_update_ip "${external_ip}"; then
     log --level info "Updating IP address with MAM" "external_ip" "${external_ip}"
     msg=$(post_mam_dynamic_ip)
-  
+
     if [ "${msg}" == "Completed" ] || [ "${msg}" == "No change" ]; then
       current_time=$(date +%s)
       log --level info "called MAM" "current_time" "${current_time}"
