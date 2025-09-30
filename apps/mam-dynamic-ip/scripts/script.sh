@@ -78,7 +78,7 @@ get_mam_session_cookie() {
   msg=$(echo "${output}" | jq -r '.msg')
 
   if [ "${msg}" != "Completed" ] && [ "${msg}" != "No change" ]; then
-    log --level error "Something went wrong. Refer to https://myanonamouse.net/api/endpoint.php/3/json/dynamicSeedbox.php" msg "${msg}"
+    log --level error "Something went wrong. Refer to https://myanonamouse.net/api/endpoint.php/3/json/dynamicSeedbox.php" "msg" "${msg}"
   fi
 }
 
@@ -111,7 +111,7 @@ should_update_ip() {
           "external_ip" "${current_ip}" \
           "last_ip" "${last_ip}"
 
-        return 0
+        return 1
       fi
     fi
 
@@ -163,6 +163,8 @@ main() {
 
       # store cached external_ip for later checks
       printf "%s\n%s" "${external_ip}" "${current_time}" > "${IP_CACHE_FILE}"
+    else
+      log --level error "Something went wrong. Refer to https://myanonamouse.net/api/endpoint.php/3/json/dynamicSeedbox.php" "msg" "${msg}"
     fi
   fi
 }
