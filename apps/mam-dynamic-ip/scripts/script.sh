@@ -65,13 +65,16 @@ get_mam_session_cookie() {
   local output
   local session_id="$1"
 
-  if [[ -z "${session_id}" ]]; then
-    return
-  fi
-
-  if [[ -f "${MAM_SESSION_DIR}" && -s "${MAM_SESSION_DIR}" ]]; then
+  # Check if we have a valid cookie file
+  if [[ -f "${MAM_SESSION_DIR}" ]] && grep -q "^[^#]" "${MAM_SESSION_DIR}"; then
       log --level info "Session cookie file already exists, skipping session creation"
       return
+  fi
+
+  # If no valid cookies, we need a session_id to create them
+  if [[ -z "${session_id}" ]]; then
+    log --level error "No session_id provided and no valid cookie file exists. Cannot authenticate with MAM."
+    exit 1
   fi
 
   output=$(query_mam "${MAM_DYNAMIC_IP_URL}" "${session_id}")
@@ -79,6 +82,12 @@ get_mam_session_cookie() {
 
   if [ "${msg}" != "Completed" ] && [ "${msg}" != "No change" ]; then
     log --level error "Something went wrong. Refer to https://myanonamouse.net/api/endpoint.php/3/json/dynamicSeedbox.php" "msg" "${msg}"
+    return
+  fi
+
+  # Verify cookie file was created with actual cookies
+  if [[ ! -f "${MAM_SESSION_DIR}" ]] || [[ ! -s "${MAM_SESSION_DIR}" ]] || ! grep -q "^[^#]" "${MAM_SESSION_DIR}"; then
+    log --level error "Session cookie file was not created properly. MAM API may not have returned cookies."
   fi
 }
 
