@@ -152,9 +152,18 @@ main() {
     exit 1
   fi
 
+  # Keep a suffix for correlation without exposing the authentication cookie.
+  local masked_session_id="unset"
+  if [[ -n "${MAM_SESSION_ID}" ]]; then
+    masked_session_id="****"
+    if (( ${#MAM_SESSION_ID} > 4 )); then
+      masked_session_id+="${MAM_SESSION_ID: -4}"
+    fi
+  fi
+
   log --level info "Fetched configuration" \
     "external_ip" "${external_ip}" \
-    "MAM_session_file" "${MAM_SESSION_DIR}" "MAM_session_id" "${MAM_SESSION_ID}"
+    "MAM_session_file" "${MAM_SESSION_DIR}" "MAM_session_id" "${masked_session_id}"
 
   # try to hit MAM at least once
   # returns if session_id is not passed or cookie file is already present
