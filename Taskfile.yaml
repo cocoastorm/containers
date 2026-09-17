@@ -13,6 +13,32 @@ tasks:
   default:
     cmd: task --list
     silent: true
+
+  go:fmt:
+    desc: Format the Go app with goimports
+    dir: '{{.ROOT_DIR}}/apps/{{.APP | default "qbittorrent-natpmp-sync"}}'
+    cmd: '"$(mise which goimports)" -w .'
+
+  go:check:
+    desc: Check Go formatting, vet findings, and race tests
+    dir: '{{.ROOT_DIR}}/apps/{{.APP | default "qbittorrent-natpmp-sync"}}'
+    cmds:
+      - |
+        unformatted=$("$(mise which goimports)" -l .)
+        if [ -n "$unformatted" ]; then
+          printf 'Files need goimports:\n%s\n' "$unformatted"
+          exit 1
+        fi
+      - go vet ./...
+      - go test -race ./...
+
+  ci:lint:
+    desc: Lint GitHub Actions workflows
+    cmd: actionlint -shellcheck=
+
+  ci:go-local:
+    desc: Smoke-test the Go checks workflow locally with act
+    cmd: act pull_request -W .github/workflows/go-checks.yaml -j qbittorrent-natpmp-sync -P ubuntu-latest=catthehacker/ubuntu:act-latest
   
   local-build-*:
     desc: Build and Test an app via Docker Buildx
@@ -30,7 +56,6 @@ tasks:
         #     "goss")
         #         {{.BIN_DIR}}/goss/dgoss run "${IMAGE}"
         #         ;;
-        esac
         echo "To run this image, use the following command:"
         echo "docker run --rm -it ${IMAGE}"
       - defer: rm -rf {{.WORK_DIR}}

@@ -1,0 +1,19 @@
+# Local GitHub Actions checks
+
+Research note (2026-09-17). `act` (singular, not `acts`) is a practical local smoke-test tool for GitHub Actions: it reads workflow files and runs jobs in Docker containers. It is not an exact implementation of GitHub-hosted runners, so a successful local run cannot establish that a release will work on GitHub. [act introduction](https://nektosact.com/introduction.html), [unsupported functionality](https://nektosact.com/not_supported.html)
+
+## Fit for this repository
+
+- The narrowest useful `act` trial is the Go checks workflow: from the repository root, run `act pull_request -W .github/workflows/go-checks.yaml -j qbittorrent-natpmp-sync`. That exercises checkout, `mise-action`, and `task go:check`. The latter can also be run directly, with less setup, using the pinned tools in `.mise.toml`. `act` documents workflow selection with `-W`, job selection with `-j`, and event selection by name. [act usage](https://nektosact.com/usage/index.html)
+- Docker Engine is required for containerized `act` jobs. Its default runner images intentionally omit tools from GitHub-hosted runners; this workflow may need a fuller runner image or local image preparation for `mise-action` and Task. Treat missing runner tools as a simulation mismatch until confirmed on GitHub. [act installation](https://nektosact.com/installation/index.html), [runner images](https://nektosact.com/usage/runners.html)
+- The release path is substantially harder to reproduce faithfully. `release.yaml` uses changed-file detection, a reusable workflow, a dynamic app matrix, two platform labels (`ubuntu-latest` and `ubuntu-24.04-arm`), Buildx, GHCR login/push, and cross-job artifacts. `act` can select matrix subsets, but it requires a runner-image mapping for each runner label and cannot prove the hosted ARM runner behaves the same. Its artifact server must be enabled explicitly (`--artifact-server-path`); its documented support includes the v4 artifact actions used here, but only within a current workflow run. [act matrix and artifacts](https://nektosact.com/usage/index.html), [runner mapping](https://nektosact.com/usage/runners.html)
+- Do not use a real `GITHUB_TOKEN` or release-enabled dispatch casually for a local smoke test. The workflows contain GHCR login and push steps, and `act` can be given a token that authorizes real API operations. Local simulation is not a sandbox for external side effects. [act token documentation](https://nektosact.com/usage/index.html#github_token)
+- `act` explicitly does not fully match GitHub Actions; notably, it ignores job permissions and lacks an OpenID Connect URL. Thus it cannot validate this repository's `packages: write`/other permission setup or a real GHCR publish. [act unsupported functionality](https://nektosact.com/not_supported.html)
+
+## Suggested validation layers
+
+1. Run `task go:check` and `task local-build-qbittorrent-natpmp-sync` for the actual Go toolchain and Dockerfile/Bake path, independently of Actions emulation. The latter is a local single-image build, not the release workflow's multi-platform push.
+2. Run [`actionlint`](https://github.com/rhysd/actionlint) on the workflow files. It statically checks syntax, expressions, `needs`, action inputs, and local reusable-workflow calls. It does not execute jobs.
+3. Optionally run the focused `act` Go checks command above for orchestration feedback. Keep the real GitHub pull-request run as the authority for runner and permission behavior. Test publishing only with a deliberately scoped registry credential and explicit intent.
+
+Sources for repository-specific statements: [.github/workflows/go-checks.yaml](../.github/workflows/go-checks.yaml), [.github/workflows/release.yaml](../.github/workflows/release.yaml), [.github/workflows/app-builder.yaml](../.github/workflows/app-builder.yaml), [Taskfile.yaml](../Taskfile.yaml), [qbittorrent Bake file](../apps/qbittorrent-natpmp-sync/docker-bake.hcl).
