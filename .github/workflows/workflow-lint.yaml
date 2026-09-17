@@ -1,0 +1,31 @@
+---
+name: Workflow Lint
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.mise.toml'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.mise.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: 2026.9.9
+          install_args: actionlint
+      - run: actionlint
