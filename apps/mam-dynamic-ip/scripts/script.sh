@@ -154,7 +154,7 @@ main() {
 
   log --level info "Fetched configuration" \
     "external_ip" "${external_ip}" \
-    "MAM_session_file" "${MAM_SESSION_DIR}" "MAM_session_id" "${MAM_SESSION_ID}"
+    "MAM_session_file" "${MAM_SESSION_DIR}"
 
   # try to hit MAM at least once
   # returns if session_id is not passed or cookie file is already present
