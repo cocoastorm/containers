@@ -34,7 +34,7 @@ tasks:
 
   ci:lint:
     desc: Lint GitHub Actions workflows
-    cmd: actionlint
+    cmd: actionlint -shellcheck=
 
   ci:go-local:
     desc: Smoke-test the Go checks workflow locally with act

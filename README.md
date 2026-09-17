@@ -18,7 +18,9 @@ future Go app is added under `apps/`.
 ## GitHub Actions checks
 
 Run `task ci:lint` to check all workflows with actionlint. CI runs the same
-check when workflows or local actions change. With Docker running, use
+check when workflows or local actions change. The optional ShellCheck integration
+is disabled so the result does not depend on which runner image has it installed.
+With Docker running, use
 `task ci:go-local` to smoke-test the Go checks workflow through act. This
 local run needs no GitHub token and does not run the image release workflow.
 The act runner image differs from GitHub's hosted runner, so the real pull

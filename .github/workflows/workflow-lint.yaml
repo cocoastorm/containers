@@ -28,4 +28,4 @@ jobs:
         with:
           version: 2026.9.9
           install_args: actionlint
-      - run: actionlint
+      - run: actionlint -shellcheck=
