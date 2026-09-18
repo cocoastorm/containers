@@ -61,6 +61,41 @@ func TestMapReplies(t *testing.T) {
 }
 func remainingTime(g Grant) time.Duration { return time.Until(g.Expiry) }
 
+func TestMapBindsSourceIP(t *testing.T) {
+	server, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	source := make(chan net.IP, 1)
+	go func() {
+		var req [12]byte
+		n, addr, err := server.ReadFromUDP(req[:])
+		if err != nil || n != len(req) {
+			return
+		}
+		source <- addr.IP
+		var reply [16]byte
+		reply[1] = 130
+		copy(reply[8:10], req[4:6])
+		binary.BigEndian.PutUint16(reply[10:12], 52837)
+		binary.BigEndian.PutUint32(reply[12:16], 60)
+		_, _ = server.WriteToUDP(reply[:], addr)
+	}()
+	_, err = (Client{Gateway: net.IPv4(127, 0, 0, 1), SourceIP: net.IPv4(127, 0, 0, 2), port: server.LocalAddr().(*net.UDPAddr).Port}).Map(context.Background(), TCP, 6881, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case got := <-source:
+		if !got.Equal(net.IPv4(127, 0, 0, 2)) {
+			t.Fatalf("source IP = %s", got)
+		}
+	default:
+		t.Fatal("server did not observe request")
+	}
+}
+
 func TestCancellation(t *testing.T) {
 	server, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
 	if err != nil {

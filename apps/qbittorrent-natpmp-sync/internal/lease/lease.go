@@ -38,8 +38,9 @@ type Mapper interface {
 }
 
 type Client struct {
-	Gateway net.IP
-	port    int
+	Gateway  net.IP
+	SourceIP net.IP
+	port     int
 }
 
 // Map uses a fresh connected UDP socket for every exchange: only the configured
@@ -66,7 +67,14 @@ func (c Client) Map(ctx context.Context, proto Protocol, internal, public uint16
 		if err := opctx.Err(); err != nil {
 			return Grant{}, fmt.Errorf("transport_timeout: %w", err)
 		}
-		conn, err := (&net.Dialer{}).DialContext(opctx, "udp4", addr.String())
+		dialer := &net.Dialer{}
+		if c.SourceIP != nil {
+			if c.SourceIP.To4() == nil || c.SourceIP.IsUnspecified() {
+				return Grant{}, errors.New("source IP must be an IPv4 address")
+			}
+			dialer.LocalAddr = &net.UDPAddr{IP: c.SourceIP.To4()}
+		}
+		conn, err := dialer.DialContext(opctx, "udp4", addr.String())
 		if err != nil {
 			return Grant{}, fmt.Errorf("transport: %w", err)
 		}

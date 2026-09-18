@@ -9,6 +9,7 @@
 : "${MAM_DYNAMIC_IP_URL:=https://t.myanonamouse.net/json/dynamicSeedbox.php}"
 : "${IP_CACHE_FILE:=/config/ip.txt}"
 : "${UPDATE_INTERVAL:=false}"
+: "${SOURCE_IP:=}"
 : "${LOG_TIMESTAMP}"
 
 gluetun_origin="${GLUETUN_CONTROL_SERVER_PROTOCOL}://${GLUETUN_CONTROL_SERVER_HOST}:${GLUETUN_CONTROL_SERVER_PORT}"
@@ -44,6 +45,10 @@ query_mam() {
   local endpoint="$1"
   local session_id="$2"
   local curl_opts=()
+
+  if [[ -n "${SOURCE_IP}" ]]; then
+    curl_opts+=("--interface" "${SOURCE_IP}")
+  fi
 
   if [[ -z "${MAM_SESSION_DIR}" ]]; then
     log --level error "MAM_SESSION_DIR to store cookies is required."
@@ -144,7 +149,11 @@ main() {
   if [[ "${GLUETUN_ENABLED}" == "true" ]]; then
     external_ip=$(get_gluetun_external_ip)
   else
-    external_ip=$(curl -s "https://ipinfo.io/ip")
+    local curl_opts=()
+    if [[ -n "${SOURCE_IP}" ]]; then
+      curl_opts+=("--interface" "${SOURCE_IP}")
+    fi
+    external_ip=$(curl -s "${curl_opts[@]}" "https://ipinfo.io/ip")
   fi
 
   if [[ -z "${external_ip}" ]]; then

@@ -1,7 +1,7 @@
 target "docker-metadata-action" {}
 
 variable "APP" { default = "qbittorrent-natpmp-sync" }
-variable "VERSION" { default = "0.1.0" }
+variable "VERSION" { default = "0.1.1" }
 variable "SOURCE" { default = "https://github.com/cocoastorm/containers" }
 
 group "default" { targets = ["image-local"] }

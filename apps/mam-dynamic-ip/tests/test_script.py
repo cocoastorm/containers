@@ -9,7 +9,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts/script.sh"
 
 
 class ScriptTest(unittest.TestCase):
-    def run_script(self, gluetun=False, cached=False, session_id="synthetic-session-secret"):
+    def run_script(self, gluetun=False, cached=False, session_id="synthetic-session-secret", source_ip=""):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cookie = root / "cookies"
@@ -46,6 +46,7 @@ class ScriptTest(unittest.TestCase):
                        GLUETUN_CONTROL_SERVER_HOST="localhost",
                        GLUETUN_CONTROL_SERVER_PORT="8000",
                        GLUETUN_CONTROL_SERVER_API_KEY="synthetic-api-key",
+                       SOURCE_IP=source_ip,
                        MOCK_RESPONSE="Completed", CALLS=str(root / "calls"))
             result = subprocess.run(["bash", "-c", harness], env=env,
                                     capture_output=True, text=True)
@@ -67,6 +68,8 @@ class ScriptTest(unittest.TestCase):
             else:
                 self.assertIn("https://ipinfo.io/ip", calls)
                 self.assertNotIn("localhost", calls)
+                if source_ip:
+                    self.assertEqual(calls.count("--interface " + source_ip), 1 if cached else 3)
             if cached:
                 self.assertNotIn("dynamicSeedbox.php", calls)
             else:
@@ -75,7 +78,7 @@ class ScriptTest(unittest.TestCase):
                 self.assertEqual(cache.read_text().splitlines()[0], "203.0.113.42")
 
     def test_direct_mode(self):
-        self.run_script()
+        self.run_script(source_ip="192.168.30.50")
 
     def test_gluetun_mode(self):
         self.run_script(gluetun=True)

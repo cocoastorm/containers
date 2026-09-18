@@ -18,14 +18,21 @@ import (
 	portsync "github.com/cocoastorm/containers/apps/qbittorrent-natpmp-sync/internal/sync"
 )
 
-func config() (net.IP, uint16, *qbittorrent.Client, slog.Level, error) {
+func config() (net.IP, net.IP, uint16, *qbittorrent.Client, slog.Level, error) {
 	ip := net.ParseIP(os.Getenv("NATPMP_GATEWAY"))
 	if ip == nil || ip.To4() == nil || ip.IsUnspecified() || ip.IsLoopback() {
-		return nil, 0, nil, 0, errors.New("NATPMP_GATEWAY must be a routable IPv4 literal")
+		return nil, nil, 0, nil, 0, errors.New("NATPMP_GATEWAY must be a routable IPv4 literal")
+	}
+	var sourceIP net.IP
+	if raw := os.Getenv("SOURCE_IP"); raw != "" {
+		sourceIP = net.ParseIP(raw)
+		if sourceIP == nil || sourceIP.To4() == nil || sourceIP.IsUnspecified() {
+			return nil, nil, 0, nil, 0, errors.New("SOURCE_IP must be an IPv4 literal")
+		}
 	}
 	n, err := strconv.ParseUint(os.Getenv("INTERNAL_PORT"), 10, 16)
 	if err != nil || n == 0 {
-		return nil, 0, nil, 0, errors.New("INTERNAL_PORT must be 1..65535")
+		return nil, nil, 0, nil, 0, errors.New("INTERNAL_PORT must be 1..65535")
 	}
 	raw := os.Getenv("QBITTORRENT_URL")
 	if raw == "" {
@@ -33,7 +40,7 @@ func config() (net.IP, uint16, *qbittorrent.Client, slog.Level, error) {
 	}
 	api, err := qbittorrent.New(raw)
 	if err != nil {
-		return nil, 0, nil, 0, err
+		return nil, nil, 0, nil, 0, err
 	}
 	level := slog.LevelInfo
 	switch os.Getenv("LOG_LEVEL") {
@@ -45,12 +52,12 @@ func config() (net.IP, uint16, *qbittorrent.Client, slog.Level, error) {
 	case "error":
 		level = slog.LevelError
 	default:
-		return nil, 0, nil, 0, errors.New("LOG_LEVEL must be debug, info, warn or error")
+		return nil, nil, 0, nil, 0, errors.New("LOG_LEVEL must be debug, info, warn or error")
 	}
-	return ip, uint16(n), api, level, nil
+	return ip, sourceIP, uint16(n), api, level, nil
 }
 func main() {
-	ip, port, api, level, err := config()
+	ip, sourceIP, port, api, level, err := config()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -64,7 +71,7 @@ func main() {
 	log.Info("startup", "gateway", ip.String(), "internal_port", port, "status_address", "127.0.0.1:8099")
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	svc := portsync.New(lease.Client{Gateway: ip}, api, port, log)
+	svc := portsync.New(lease.Client{Gateway: ip, SourceIP: sourceIP}, api, port, log)
 	server := &http.Server{Addr: "127.0.0.1:8099", Handler: svc.Handler(), ReadHeaderTimeout: 2 * time.Second}
 	listener, err := net.Listen("tcp4", server.Addr)
 	if err != nil {
