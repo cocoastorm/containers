@@ -11,6 +11,7 @@ other qBittorrent settings. The mapping and Web API loops run independently.
 | Variable | Value |
 | --- | --- |
 | `NATPMP_GATEWAY` | Required literal IPv4 gateway, e.g. `10.2.0.1` |
+| `SOURCE_IP` | Optional literal IPv4 address to bind the UDP mapping socket; set to `192.168.30.50` for VLAN 30 |
 | `INTERNAL_PORT` | Required nonzero fixed tunnel/listener port |
 | `QBITTORRENT_URL` | HTTP(S) URL, optionally with a base path; default `http://127.0.0.1:8080` |
 | `LOG_LEVEL` | `debug`, `info` (default), `warn`, or `error` |
