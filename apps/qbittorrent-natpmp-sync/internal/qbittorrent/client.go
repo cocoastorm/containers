@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,7 +51,12 @@ func New(raw string) (*Client, error) {
 	return &Client{base: strings.TrimRight(u.String(), "/"), http: &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
-func (c *Client) request(ctx context.Context, method, path string, body io.Reader) ([]byte, error) {
+// request accepts only the given success statuses (200 when none are given).
+// Readers must stay 200-only so an empty 204 is never parsed as data.
+func (c *Client) request(ctx context.Context, method, path string, body io.Reader, ok ...int) ([]byte, error) {
+	if len(ok) == 0 {
+		ok = []int{http.StatusOK}
+	}
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, body)
 	if err != nil {
 		return nil, err
@@ -63,7 +69,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		return nil, fmt.Errorf("transport: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if !slices.Contains(ok, resp.StatusCode) {
 		return nil, fmt.Errorf("api_rejection: status=%d", resp.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 65536))
@@ -103,7 +109,8 @@ func (c *Client) SetAnnouncePort(ctx context.Context, port uint16) error {
 		AnnouncePort uint16 `json:"announce_port"`
 	}{port})
 	v := url.Values{"json": {string(payload)}}
-	_, err := c.request(ctx, "POST", "/api/v2/app/setPreferences", strings.NewReader(v.Encode()))
+	// qBittorrent >= 5.2 answers successful empty Web API calls with 204.
+	_, err := c.request(ctx, "POST", "/api/v2/app/setPreferences", strings.NewReader(v.Encode()), http.StatusOK, http.StatusNoContent)
 	return err
 }
 
