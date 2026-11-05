@@ -56,7 +56,7 @@ GOOS=linux GOARCH=arm64 go build ./cmd/qbittorrent-natpmp-sync
 docker buildx bake image-local
 ```
 
-Before deployment, follow [PLAN.md](PLAN.md): back up qBittorrent settings,
+Before deployment, follow [ARCHITECTURE.md](ARCHITECTURE.md): back up qBittorrent settings,
 validate the actual tunnel's fixed-port mapping and incoming TCP/UDP delivery,
 then verify tracker/DHT announcements when the assigned public port changes.
 API readback alone does not prove end-to-end reachability. Publishing an image
