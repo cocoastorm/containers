@@ -131,10 +131,10 @@ func TestReadsRejectEmptySuccess(t *testing.T) {
 	}))
 	defer s.Close()
 	c, _ := New(s.URL)
-	if _, err := c.Preferences(context.Background()); err == nil || !strings.Contains(err.Error(), "204") {
+	if _, err := c.Preferences(context.Background()); err == nil || !strings.Contains(err.Error(), "invalid_preferences") {
 		t.Errorf("preferences error %v", err)
 	}
-	if _, err := c.Version(context.Background()); err == nil || !strings.Contains(err.Error(), "204") {
+	if _, err := c.Version(context.Background()); err == nil || !strings.Contains(err.Error(), "invalid_version") {
 		t.Errorf("version error %v", err)
 	}
 }
