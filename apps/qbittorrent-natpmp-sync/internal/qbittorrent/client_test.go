@@ -111,3 +111,41 @@ func TestNoRedirectOrProxy(t *testing.T) {
 		t.Fatalf("error %v", err)
 	}
 }
+
+func TestSetAnnouncePortAcceptsEmptySuccess(t *testing.T) {
+	for _, status := range []int{http.StatusOK, http.StatusNoContent} {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+		}))
+		c, _ := New(s.URL)
+		if err := c.SetAnnouncePort(context.Background(), 52837); err != nil {
+			t.Errorf("status %d: %v", status, err)
+		}
+		s.Close()
+	}
+}
+
+func TestReadsRejectEmptySuccess(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer s.Close()
+	c, _ := New(s.URL)
+	if _, err := c.Preferences(context.Background()); err == nil || !strings.Contains(err.Error(), "invalid_preferences") {
+		t.Errorf("preferences error %v", err)
+	}
+	if _, err := c.Version(context.Background()); err == nil || !strings.Contains(err.Error(), "invalid_version") {
+		t.Errorf("version error %v", err)
+	}
+}
+
+func TestSetAnnouncePortRejected(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer s.Close()
+	c, _ := New(s.URL)
+	if err := c.SetAnnouncePort(context.Background(), 52837); err == nil || !strings.Contains(err.Error(), "403") {
+		t.Fatalf("error %v", err)
+	}
+}

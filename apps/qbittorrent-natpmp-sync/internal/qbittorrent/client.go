@@ -50,6 +50,9 @@ func New(raw string) (*Client, error) {
 	return &Client{base: strings.TrimRight(u.String(), "/"), http: &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
+// request accepts 200, and the 204 No Content that qBittorrent >= 5.2 returns
+// for successful empty responses. Readers validate the body, so an empty 204
+// still fails there.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, body)
 	if err != nil {
@@ -63,7 +66,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		return nil, fmt.Errorf("transport: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return nil, fmt.Errorf("api_rejection: status=%d", resp.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 65536))
